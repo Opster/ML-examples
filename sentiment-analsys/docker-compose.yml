@@ -1,0 +1,66 @@
+version: '3.7'
+
+services:
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.10.1
+    container_name: kibana_poc
+    environment:
+      - ELASTICSEARCH_HOSTS="http://es01:9200"
+    ports:
+      - 5601:5601
+    networks: {"esnet"}
+
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.1
+    container_name: es01_poc
+    environment:
+      - node.name=es01
+      - discovery.seed_hosts=es01
+      - cluster.initial_master_nodes=es01
+      - cluster.name=sentiment-analysis
+      - xpack.license.self_generated.type=trial
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms4096m -Xmx4096m"
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9200:9200
+    healthcheck:
+      test: curl --fail -s http://localhost:9200
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks: {"esnet"}
+
+  eland:
+    image: python:3.10
+    container_name: eland_poc
+    build: ./
+    command: >
+      bash -c '
+      eland_import_hub_model --url http://es01:9200 --hub-model-id distilbert-base-uncased-finetuned-sst-2-english --task-type text_classification --start; 
+      sleep 60'
+    healthcheck:
+      test: >
+        bash -c "
+          curl --fail -s -XPOST http://es01:9200/_ml/trained_models/distilbert-base-uncased-finetuned-sst-2-english/deployment/_update -H \"Content-Type: application/json\" -d'{\"number_of_allocations\": 10}' && 
+          curl --fail -s -XPUT http://es01:9200/_ingest/pipeline/sentiment-analysis -H \"Content-Type: application/json\" -d'{\"processors\":[{\"inference\":{\"model_id\":\"distilbert-base-uncased-finetuned-sst-2-english\",\"field_map\":{\"review\":\"text_field\"}}}]}'
+        "
+      interval: 10s
+      timeout: 10s
+      retries: 60
+    depends_on: {"es01": {"condition": "service_healthy"}}
+    networks: {"esnet"}
+ 
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.10.1
+    container_name: filebeat_poc
+    user: root
+    volumes: ['./IMDB Dataset.csv:/tmp/dataset.csv', './filebeat.yml:/usr/share/filebeat/filebeat.yml']
+    depends_on: {"eland": {"condition": "service_healthy"}}
+    networks: {"esnet"}
+
+networks: {"esnet"}

@@ -1,0 +1,23 @@
+filebeat.inputs:
+- type: log
+  paths:
+    - /tmp/dataset.csv
+
+processors:
+  - decode_csv_fields:
+      fields:
+        message: imdb
+      separator: ","
+      fail_on_error: true
+  - extract_array:
+      field: imdb
+      mappings:
+        review: 0
+        opinion: 1
+  - drop_fields:
+      fields: ["message", "imdb"]
+
+output.elasticsearch:
+  hosts: ["http://es01:9200"]
+  pipeline: "sentiment-analysis"
+  worker: 10
