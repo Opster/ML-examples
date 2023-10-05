@@ -26,3 +26,4 @@ curl -XGET "http://localhost:9200/filebeat-*/_search?q=_exists_:review"
 ```
 
 Please note that before creating visualizations on kibana with the ingested data, first we must [create a data view](https://www.elastic.co/guide/en/kibana/current/data-views.html)
+Kibana is running on [http://localhost:5601](http://localhost:5601)
