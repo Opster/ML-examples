@@ -6,14 +6,17 @@ Please note that in this example the file ingestion is automated using filebeat,
 ### Getting Started
 ```
 # 1. Clone this repository
-git clone https://github.com/Opster/sentiment-analysis-example
+git clone https://github.com/Opster/ML-examples
 
 # 2. Enter the sentiment-analysis folder
-cd sentiment-analysis
+cd ML-examples/sentiment-analysis/
 
 # 3. Run docker-compose build and run commands
 docker-compose build
-docker-compose up -d
+docker-compose up
+
+# to stop
+#docker-compose down
 ```
 
 ### Visualizing Sentiment Data
